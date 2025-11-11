@@ -6,11 +6,13 @@
 #include "lwip/opt.h"
 #include "lwip/sys.h"
 #include "lwip/err.h"
+#include "lwip/netif.h"
 #include "arch/sys_arch.h"
 #include <stdlib.h>
 #include <string.h>
 #include <kernel_cfg.h>
-
+typedef void (*thread_func)(void *thread_arg);
+extern void lwip_task(EXINF exinf);
 u32_t xInsideISR;
 typedef struct {
     ID id;
@@ -165,6 +167,7 @@ err_t sys_sem_new(sys_sem_t *sem,u8_t count) {
     if (*sem <= 0){
         return ERR_MEM;
     }
+    sig_sem(*sem);
     if(count == 0)
     {
        wai_sem(*sem);
@@ -219,7 +222,7 @@ u32_t sys_arch_sem_wait(sys_sem_t *sem, u32_t timeout) {
     if (timeout == 0) {
         ret = wai_sem(*sem);
     } else {
-        ret = twai_sem(*sem, timeout);
+        ret = twai_sem(*sem, timeout * 1000);
     }
 
     get_tim(&end);
@@ -344,6 +347,15 @@ u32_t sys_arch_mbox_tryfetch(sys_mbox_t *mbox, void **msg) {
     }
 }
 
+void sys_arch_mutex_lock()
+{    
+    loc_mtx(OPEN_RTM_THREAD_MTX);
+
+}
+void sys_arch_mutex_unlock()
+{
+    unl_mtx(OPEN_RTM_THREAD_MTX);
+}
 
 void lwip_task(EXINF exinf)
 {
@@ -390,6 +402,72 @@ sys_thread_t sys_thread_new(const char *name, lwip_thread_fn thread, void *arg, 
         }
     }
     return id;
+}
+
+int sys_thread_done(sys_thread_t *thread)
+{
+    int idx = *thread - LWIP_SYS_TASK1;
+    if( 0 <= idx  && idx < sizeof(asp_sys_thread_list)/sizeof(asp_sys_thread_list[0]))
+    {
+        asp_sys_thread_t *elm=&asp_sys_thread_list[idx];
+        return ~elm->use;
+    }
+ }
+
+ uint64_t sys_arch_system_clock()
+ {
+    uint64_t tim;
+    get_tim(&tim);
+    return tim;
+ }
+ 
+ void sys_arch_version(int *major,int *minor, int* patch)
+ {
+    *major = (TKERNEL_PRVER >> 12) & 0x000F;
+    *minor = (TKERNEL_PRVER >> 4) & 0x00FF;
+    *patch = (TKERNEL_PRVER) & 0x0F;
+ }
+
+ void sys_arch_currentid(sys_thread_t *thread)
+ {
+    get_tid(&thread);
+ }
+ 
+ int sys_arch_delay(unsigned int miliseconds)
+ {
+    return dly_tsk(miliseconds*1000); //sec->us;
+ }
+
+ int sys_arch_usleep( uint64_t us)
+ {
+    return  dly_tsk( us);
+ }
+
+ void sys_thread_sleep()
+ {
+    slp_tsk();
+ }
+
+ void sys_thread_wakeup(sys_thread_t *thread)
+ {
+    wup_tsk(*thread);
+ }
+
+ static char nonemac[6]={0};
+ char *get_ifaddr()
+ {
+    struct netif *netif_ptr = netif_list;
+    while (netif_ptr != NULL) {
+    if(netif_ptr->ip_addr.addr!=0)
+    {
+      /* IP4 有効*/
+      break;
+    }
+    netif_ptr = netif_ptr->next;
+    
+    return netif_ptr->hwaddr;
+  }
+  return nonemac;
 }
 
 /**
