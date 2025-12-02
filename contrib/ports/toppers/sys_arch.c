@@ -526,7 +526,7 @@ int sys_thread_done(sys_thread_t *thread)
 
  void sys_arch_currentid(sys_thread_t *thread)
  {
-    get_tid(&thread);
+    get_tid(thread);
  }
  
  int sys_arch_delay(unsigned int miliseconds)
