@@ -188,7 +188,9 @@ u32_t sys_now()
 err_t sys_mutex_new(sys_mutex_t *mutex)
 {
     int i;
+    
     *mutex = 0;
+    loc_mtx(LWIP_SYS_MTX_SYSTEM);
     for(  i = 0 ; i < sizeof(asp_sys_mtx_list)/sizeof(asp_sys_mtx_list[0]);i++)
     {
         asp_sys_mtx_t *elm = &asp_sys_mtx_list[i];
@@ -199,6 +201,7 @@ err_t sys_mutex_new(sys_mutex_t *mutex)
             break;
         }
     }
+    unl_mtx(LWIP_SYS_MTX_SYSTEM);
     if (*mutex <= 0){
         return ERR_MEM;
     }
@@ -250,6 +253,8 @@ void sys_mutex_free(sys_mutex_t *mutex)
 err_t sys_sem_new(sys_sem_t *sem,u8_t count) {
     int i;
     *sem = 0;
+    loc_mtx(LWIP_SYS_MTX_SYSTEM);
+
     for(  i = 0 ; i < sizeof(asp_sys_sem_list)/sizeof(asp_sys_sem_list[0]);i++)
     {
         asp_sys_sem_t *elm = &asp_sys_sem_list[i];
@@ -260,6 +265,8 @@ err_t sys_sem_new(sys_sem_t *sem,u8_t count) {
             break;
         }
     }
+    unl_mtx(LWIP_SYS_MTX_SYSTEM);
+
     if (*sem <= 0){
         return ERR_MEM;
     }
@@ -483,6 +490,8 @@ sys_thread_t sys_thread_new(const char *name, lwip_thread_fn thread, void *arg, 
     int i;
 
     id = 0;
+    loc_mtx(LWIP_SYS_MTX_SYSTEM);
+
     for(  i = 0 ; i < sizeof(asp_sys_thread_list)/sizeof(asp_sys_thread_list[0]);i++)
     {
         asp_sys_thread_t *elm = &asp_sys_thread_list[i];
@@ -497,6 +506,8 @@ sys_thread_t sys_thread_new(const char *name, lwip_thread_fn thread, void *arg, 
             break;
         }
     }
+    unl_mtx(LWIP_SYS_MTX_SYSTEM);
+
     return id;
 }
 
