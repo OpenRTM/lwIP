@@ -419,8 +419,7 @@ u32_t sys_arch_mbox_fetch(sys_mbox_t *mbox, void **msg, u32_t timeout) {
     SYSTIM start, end;
     intptr_t data;
     get_tim(&start);
-
-    ER ret = (timeout == 0) ? rcv_dtq(*mbox, &data) : trcv_dtq(*mbox, &data, timeout);
+    ER ret = (timeout == 0) ? rcv_dtq(*mbox, &data) : trcv_dtq(*mbox, &data, timeout*1000);
     get_tim(&end);
 
     if (ret == E_TMOUT) {
@@ -429,7 +428,7 @@ u32_t sys_arch_mbox_fetch(sys_mbox_t *mbox, void **msg, u32_t timeout) {
     }
 
     *msg = (void *)data;
-    return (u32_t)(end - start);
+    return (u32_t)(end - start)/1000;
 }
 
 /**
